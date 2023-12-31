@@ -45,25 +45,46 @@ class Block {
     }
 
     hasValidTransactions(chain) {
-        return this.data.every((transaction) =>
-            transaction.isValid(transaction, chain)
+        let gas = 0,
+            reward = 0
+
+        this.data.forEach((transaction) => {
+            if (transaction.from !== MINT_PUBLIC_ADDRESS) {
+                gas += transaction.gas
+            } else {
+                reward = transaction.amount
+            }
+        })
+
+        return (
+            reward - gas === chain.reward &&
+            this.data.every((transaction) =>
+                transaction.isValid(transaction, chain)
+            ) &&
+            this.data.filter(
+                (transaction) => transaction.from === MINT_PUBLIC_ADDRESS
+            ).length === 1
         )
     }
 }
 
 class Transaction {
-    constructor(from, to, amount) {
+    // Gas will be set to 0 because we are making it optional
+    constructor(from, to, amount, gas = 0) {
         this.from = from
         this.to = to
         this.amount = amount
+        this.gas = gas
     }
 
     sign(keyPair) {
-        // Check if the public key matches the "from" address of the transaction
         if (keyPair.getPublic('hex') === this.from) {
-            // Sign the transaction
+            // Add gas
             this.signature = keyPair
-                .sign(SHA256(this.from + this.to + this.amount), 'base64')
+                .sign(
+                    SHA256(this.from + this.to + this.amount + this.gas),
+                    'base64'
+                )
                 .toDER('hex')
         }
     }
@@ -73,11 +94,15 @@ class Transaction {
             tx.from &&
             tx.to &&
             tx.amount &&
-            (chain.getBalance(tx.from) >= tx.amount ||
+            // Add gas
+            (chain.getBalance(tx.from) >= tx.amount + tx.gas ||
                 tx.from === MINT_PUBLIC_ADDRESS) &&
             ec
                 .keyFromPublic(tx.from, 'hex')
-                .verify(SHA256(tx.from + tx.to + tx.amount), tx.signature)
+                .verify(
+                    SHA256(tx.from + tx.to + tx.amount + tx.gas),
+                    tx.signature
+                )
         )
     }
 }
@@ -120,20 +145,27 @@ class Blockchain {
     }
 
     mineTransactions(rewardAddress) {
+        let gas = 0
+
+        this.transactions.forEach((transaction) => {
+            gas += transaction.gas
+        })
+
         const rewardTransaction = new Transaction(
             MINT_PUBLIC_ADDRESS,
             rewardAddress,
-            this.reward
+            this.reward + gas
         )
         rewardTransaction.sign(MINT_KEY_PAIR)
 
-        // We will add the reward transaction into the pool.
-        this.addBlock(
-            new Block(Date.now().toString(), [
-                rewardTransaction,
-                ...this.transactions,
-            ])
-        )
+        // Prevent people from minting coins and mine the minting transaction.
+        if (this.transactions.length !== 0)
+            this.addBlock(
+                new Block(Date.now().toString(), [
+                    rewardTransaction,
+                    ...this.transactions,
+                ])
+            )
 
         this.transactions = []
     }
@@ -162,6 +194,7 @@ class Blockchain {
             block.data.forEach((transaction) => {
                 if (transaction.from === address) {
                     balance -= transaction.amount
+                    balance -= transaction.gas
                 }
 
                 if (transaction.to === address) {
@@ -176,20 +209,28 @@ class Blockchain {
 
 // Play area
 const JeChain = new Blockchain()
-JeChain.addBlock(
-    new Block(Date.now().toString(), { from: 'John', to: 'Bob', amount: 100 })
-)
-JeChain.addBlock(
-    new Block(Date.now().toString(), { from: 'Bob', to: 'John', amount: 50 })
-)
-JeChain.addBlock(
-    new Block(Date.now().toString(), { from: 'Xav', to: 'John', amount: 10 })
-)
-JeChain.addBlock(
-    new Block(Date.now().toString(), { from: 'John', to: 'Xav', amount: 10000 })
-)
-JeChain.addBlock(
-    new Block(Date.now().toString(), { from: 'John', to: 'Bob', amount: 105 })
-)
 
-console.log('Chain class', JeChain)
+// Your original balance is 100000
+
+const girlfriendWallet = ec.genKeyPair()
+
+// Create a transaction
+const transaction = new Transaction(
+    holderKeyPair.getPublic('hex'),
+    girlfriendWallet.getPublic('hex'),
+    100,
+    10
+)
+// Sign the transaction
+transaction.sign(holderKeyPair)
+// Add transaction to pool
+JeChain.addTransaction(transaction)
+// Mine transaction
+JeChain.mineTransactions(holderKeyPair.getPublic('hex'))
+
+// Prints out balance of both address
+console.log('Your balance:', JeChain.getBalance(holderKeyPair.getPublic('hex')))
+console.log(
+    "Your girlfriend's balance:",
+    JeChain.getBalance(girlfriendWallet.getPublic('hex'))
+)
