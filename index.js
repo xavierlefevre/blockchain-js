@@ -3,6 +3,8 @@ const crypto = require('crypto')
 const SHA256 = (message) =>
     crypto.createHash('sha256').update(message).digest('hex')
 
+const log16 = (n) => Math.log(n) / Math.log(16)
+
 class Block {
     constructor(timestamp = '', data = []) {
         this.timestamp = timestamp
@@ -22,7 +24,11 @@ class Block {
     }
 
     mine(difficulty) {
-        while (!this.hash.startsWith(Array(difficulty + 1).join('0'))) {
+        while (
+            !this.hash.startsWith(
+                '000' + Array(Math.round(log16(difficulty)) + 1).join('0')
+            )
+        ) {
             this.nonce++
             this.hash = this.getHash()
         }
