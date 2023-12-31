@@ -55,7 +55,7 @@ export class Block {
         return (
             reward - gas === chain.reward &&
             this.data.every((transaction) =>
-                transaction.isValid(transaction, chain)
+                transaction.isValid({ transaction, chain })
             ) &&
             this.data.filter(
                 (transaction) => transaction.from === MINT_PUBLIC_ADDRESS

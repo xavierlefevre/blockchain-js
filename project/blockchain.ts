@@ -36,25 +36,25 @@ export class Blockchain {
                 : -1
     }
 
-    addTransaction(transaction: Transaction): void {
-        if (transaction.isValid(transaction, this)) {
+    addTransaction({ transaction }: { transaction: Transaction }): void {
+        if (transaction.isValid({ transaction, chain: this })) {
             this.transactions.push(transaction)
         }
     }
 
-    mineTransactions(rewardAddress: string): void {
+    mineTransactions({ rewardAddress }: { rewardAddress: string }): void {
         let gas = 0
 
         this.transactions.forEach((transaction) => {
             gas += transaction.gas
         })
 
-        const rewardTransaction = new Transaction(
-            MINT_PUBLIC_ADDRESS,
-            rewardAddress,
-            this.reward + gas
-        )
-        rewardTransaction.sign(MINT_KEY_PAIR)
+        const rewardTransaction = new Transaction({
+            from: MINT_PUBLIC_ADDRESS,
+            to: rewardAddress,
+            amount: this.reward + gas,
+        })
+        rewardTransaction.sign({ keyPair: MINT_KEY_PAIR })
 
         if (this.transactions.length !== 0)
             this.addBlock(

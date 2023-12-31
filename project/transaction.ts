@@ -11,14 +11,24 @@ export class Transaction {
     public gas: number
     public signature?: string
 
-    constructor(from: string, to: string, amount: number, gas: number = 0) {
+    constructor({
+        from,
+        to,
+        amount,
+        gas = 0,
+    }: {
+        from: string
+        to: string
+        amount: number
+        gas?: number
+    }) {
         this.from = from
         this.to = to
         this.amount = amount
         this.gas = gas
     }
 
-    sign(keyPair: EC.KeyPair): void {
+    sign({ keyPair }: { keyPair: EC.KeyPair }): void {
         if (keyPair.getPublic('hex') === this.from) {
             this.signature = keyPair
                 .sign(
@@ -29,18 +39,30 @@ export class Transaction {
         }
     }
 
-    isValid(tx: Transaction, chain: Blockchain): boolean {
+    isValid({
+        transaction,
+        chain,
+    }: {
+        transaction: Transaction
+        chain: Blockchain
+    }): boolean {
         return !!(
-            tx.from &&
-            tx.to &&
-            tx.amount &&
-            (chain.getBalance(tx.from) >= tx.amount + tx.gas ||
-                tx.from === MINT_PUBLIC_ADDRESS) &&
+            transaction.from &&
+            transaction.to &&
+            transaction.amount &&
+            (chain.getBalance(transaction.from) >=
+                transaction.amount + transaction.gas ||
+                transaction.from === MINT_PUBLIC_ADDRESS) &&
             ec
-                .keyFromPublic(tx.from, 'hex')
+                .keyFromPublic(transaction.from, 'hex')
                 .verify(
-                    SHA256(tx.from + tx.to + tx.amount + tx.gas),
-                    tx.signature!
+                    SHA256(
+                        transaction.from +
+                            transaction.to +
+                            transaction.amount +
+                            transaction.gas
+                    ),
+                    transaction.signature!
                 )
         )
     }
