@@ -29,6 +29,8 @@ export class Transaction {
     }
 
     sign({ keyPair }: { keyPair: EC.KeyPair }): void {
+        // Question: the public key of the "from wallet", anyone can have it
+        // so is it secure enough when signing and validating?
         if (keyPair.getPublic('hex') === this.from) {
             this.signature = keyPair
                 .sign(
@@ -37,6 +39,9 @@ export class Transaction {
                 )
                 .toDER('hex')
         }
+        // Question: Why not do the signing at the same time as creating the transaction?
+        // Possible answer: in order to allow the creation of the transaction by someone else, like the receiver
+        // however the gas will still be paid by the sender
     }
 
     isValid({
