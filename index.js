@@ -33,6 +33,7 @@ class Blockchain {
     constructor() {
         this.chain = [new Block(Date.now().toString())]
         this.difficulty = 1
+        this.blockTime = 1 * 60 * 1000
     }
 
     getLastBlock() {
@@ -44,6 +45,12 @@ class Blockchain {
         block.hash = block.getHash()
         block.mine(this.difficulty)
         this.chain.push(Object.freeze(block))
+
+        this.difficulty +=
+            Date.now() - parseInt(this.getLastBlock().timestamp) <
+            this.blockTime
+                ? 1
+                : -1
     }
 
     isValid(blockchain = this) {
@@ -68,5 +75,17 @@ const JeChain = new Blockchain()
 JeChain.addBlock(
     new Block(Date.now().toString(), { from: 'John', to: 'Bob', amount: 100 })
 )
+JeChain.addBlock(
+    new Block(Date.now().toString(), { from: 'Bob', to: 'John', amount: 50 })
+)
+JeChain.addBlock(
+    new Block(Date.now().toString(), { from: 'Xav', to: 'John', amount: 10 })
+)
+JeChain.addBlock(
+    new Block(Date.now().toString(), { from: 'John', to: 'Xav', amount: 10000 })
+)
+JeChain.addBlock(
+    new Block(Date.now().toString(), { from: 'John', to: 'Bob', amount: 105 })
+)
 
-console.log(JeChain.chain)
+console.log('Chain class', JeChain)
