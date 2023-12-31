@@ -9,18 +9,30 @@ class Block {
         this.data = data
         this.hash = this.getHash()
         this.prevHash = ''
+        this.nonce = 0
     }
 
     getHash() {
         return SHA256(
-            this.prevHash + this.timestamp + JSON.stringify(this.data)
+            this.prevHash +
+                this.timestamp +
+                JSON.stringify(this.data) +
+                this.nonce
         )
+    }
+
+    mine(difficulty) {
+        while (!this.hash.startsWith(Array(difficulty + 1).join('0'))) {
+            this.nonce++
+            this.hash = this.getHash()
+        }
     }
 }
 
 class Blockchain {
     constructor() {
         this.chain = [new Block(Date.now().toString())]
+        this.difficulty = 1
     }
 
     getLastBlock() {
@@ -30,7 +42,7 @@ class Blockchain {
     addBlock(block) {
         block.prevHash = this.getLastBlock().hash
         block.hash = block.getHash()
-
+        block.mine(this.difficulty)
         this.chain.push(Object.freeze(block))
     }
 
@@ -52,11 +64,9 @@ class Blockchain {
 }
 
 // Play area
-const nowTimestamp = Date.now().toString()
+const JeChain = new Blockchain()
+JeChain.addBlock(
+    new Block(Date.now().toString(), { from: 'John', to: 'Bob', amount: 100 })
+)
 
-console.log('nowTimestamp', nowTimestamp)
-
-const firstBlock = new Block(nowTimestamp, [1, 2, 3])
-
-console.log('hash', firstBlock.getHash())
-console.log('firstBlock', firstBlock)
+console.log(JeChain.chain)
