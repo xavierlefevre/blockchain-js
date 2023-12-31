@@ -1,21 +1,21 @@
-import { ec as EC } from 'elliptic';
+import { ec as EC } from 'elliptic'
 
-import { MINT_PUBLIC_ADDRESS } from './constants';
-import { ec, SHA256 } from './helper';
-import type { Blockchain } from './blockchain';
+import { MINT_PUBLIC_ADDRESS } from './constants'
+import { ec, SHA256 } from './helper'
+import type { Blockchain } from './blockchain'
 
 export class Transaction {
-    public from: string;
-    public to: string;
-    public amount: number;
-    public gas: number;
-    public signature?: string;
+    public from: string
+    public to: string
+    public amount: number
+    public gas: number
+    public signature?: string
 
     constructor(from: string, to: string, amount: number, gas: number = 0) {
-        this.from = from;
-        this.to = to;
-        this.amount = amount;
-        this.gas = gas;
+        this.from = from
+        this.to = to
+        this.amount = amount
+        this.gas = gas
     }
 
     sign(keyPair: EC.KeyPair): void {
@@ -25,7 +25,7 @@ export class Transaction {
                     SHA256(this.from + this.to + this.amount + this.gas),
                     'base64'
                 )
-                .toDER('hex');
+                .toDER('hex')
         }
     }
 
@@ -42,6 +42,6 @@ export class Transaction {
                     SHA256(tx.from + tx.to + tx.amount + tx.gas),
                     tx.signature!
                 )
-        );
+        )
     }
 }

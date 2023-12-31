@@ -1,23 +1,25 @@
-import { holderKeyPair, girlfriendWallet } from './project/constants';
-import { Transaction } from './project/transaction';
-import { Blockchain } from './project/blockchain';
+import { xavierWallet, lumaWallet } from './project/constants'
+import { Transaction } from './project/transaction'
+import { Blockchain } from './project/blockchain'
 
-// Play area
-const JeChain = new Blockchain();
+// Test Area
+const Mugen = new Blockchain()
 
 const transaction = new Transaction(
-    holderKeyPair.getPublic('hex'),
-    girlfriendWallet.getPublic('hex'),
+    xavierWallet.getPublic('hex'),
+    lumaWallet.getPublic('hex'),
     100,
     10
-);
-transaction.sign(holderKeyPair);
+)
+transaction.sign(xavierWallet)
 
-JeChain.addTransaction(transaction);
-JeChain.mineTransactions(holderKeyPair.getPublic('hex'));
+Mugen.addTransaction(transaction)
+Mugen.mineTransactions(xavierWallet.getPublic('hex'))
 
-console.log('Your balance:', JeChain.getBalance(holderKeyPair.getPublic('hex')));
+console.log(' ')
 console.log(
-    "Your girlfriend's balance:",
-    JeChain.getBalance(girlfriendWallet.getPublic('hex'))
-);
+    "Xavier's balance:",
+    Mugen.getBalance(xavierWallet.getPublic('hex'))
+)
+console.log("Luma's balance:", Mugen.getBalance(lumaWallet.getPublic('hex')))
+console.log(' ')
