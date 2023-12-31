@@ -53,7 +53,7 @@ export class Block {
         })
 
         return (
-            reward - gas === chain.reward &&
+            reward - gas === chain.miningReward &&
             this.data.every((transaction) =>
                 transaction.isValid({ transaction, chain })
             ) &&

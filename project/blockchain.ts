@@ -5,18 +5,18 @@ import { firstTransaction } from './initial-transaction'
 
 export class Blockchain {
     public chain: Block[]
-    public difficulty: number
-    public blockTime: number
-    public transactions: Transaction[]
-    public reward: number
+    public transactionsPool: Transaction[]
+    public miningDifficulty: number
+    public targetBlockCreationTime: number
+    public miningReward: number
 
     constructor() {
         const initialCoinRelease = firstTransaction
         this.chain = [new Block(Date.now().toString(), [initialCoinRelease])]
-        this.difficulty = 1
-        this.blockTime = 1 * 60 * 1000
-        this.transactions = []
-        this.reward = 297
+        this.transactionsPool = []
+        this.miningDifficulty = 1
+        this.targetBlockCreationTime = 1 * 60 * 1000
+        this.miningReward = 100
     }
 
     getLastBlock(): Block {
@@ -26,45 +26,47 @@ export class Blockchain {
     addBlock(block: Block): void {
         block.prevHash = this.getLastBlock().hash
         block.hash = block.getHash()
-        block.mine(this.difficulty)
+        block.mine(this.miningDifficulty)
         this.chain.push(Object.freeze(block))
 
-        this.difficulty +=
+        // Re-adjustment of the mining difficulty after each new block created
+        this.miningDifficulty +=
             Date.now() - parseInt(this.getLastBlock().timestamp) <
-            this.blockTime
+            this.targetBlockCreationTime
                 ? 1
                 : -1
     }
 
     addTransaction({ transaction }: { transaction: Transaction }): void {
         if (transaction.isValid({ transaction, chain: this })) {
-            this.transactions.push(transaction)
+            this.transactionsPool.push(transaction)
         }
     }
 
     mineTransactions({ rewardAddress }: { rewardAddress: string }): void {
         let gas = 0
 
-        this.transactions.forEach((transaction) => {
+        this.transactionsPool.forEach((transaction) => {
             gas += transaction.gas
         })
 
         const rewardTransaction = new Transaction({
             from: MINT_PUBLIC_ADDRESS,
             to: rewardAddress,
-            amount: this.reward + gas,
+            amount: this.miningReward + gas,
         })
         rewardTransaction.sign({ keyPair: MINT_KEY_PAIR })
 
-        if (this.transactions.length !== 0)
+        // Ensuring that at least one legit transaction has been processed by the miner
+        if (this.transactionsPool.length !== 0)
             this.addBlock(
                 new Block(Date.now().toString(), [
                     rewardTransaction,
-                    ...this.transactions,
+                    ...this.transactionsPool,
                 ])
             )
 
-        this.transactions = []
+        this.transactionsPool = []
     }
 
     isValid(blockchain: Blockchain = this): boolean {
