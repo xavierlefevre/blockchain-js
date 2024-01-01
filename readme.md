@@ -10,18 +10,51 @@ I leverage different online resources to progressively build-up a more complete 
 -   Install dependencies: `yarn`
 -   Launch the transactions simulation: `npx ts-node index.ts`
 
+## Design
+
+### Representation of the chain
+
+![](documentation/chain-representation.png)
+
+### Roles involved in the chain lifecycle
+
+![](documentation/roles.png)
+
+### A basic example of chain events
+
+![](documentation/examples-of-events.png)
+
+### Security
+
+#### Transaction validity
+
+Each wallet owner owns a key pair as unique identifier, address, transaction signing tool. The public key is accessible to the network. The private remains secret to ensure the authenticity.
+
+#### Blockchain validity through Proof of work
+
+Blocks are chained via their hashes. If a previous block hash is changed, it invalidates all subsequent hashes. It will take more time for a solo hacker to re-mine each subsequent block hashes to build a fake chain, than the rest of the network to continue growing the valid chain.
+
 ## Todo
 
--   Draft and document the current implementation with a diagram
--   Improvement ideas:
-    -   Build-up a rational between initial coin quantity, coin minting and burning
-    -   Let the miner re-arrange the list of transactions based on gas
-    -   Minimum gas allowed and/or deadline before transaction failed
-    -   Create a chain validator persona
+-   Basic chain operations -> Setup a peer-to-peer process:
+    -   Handle concurrency
     -   Build a proper secure API: what can be called by who
-    -   Handle concurrency at each step
-    -   Setup a Peer-to-peer process
+    -   Sync chain and transaction pools history across the network
+-   Security:
+    -   Ensure validity of chain, block and transactions
+    -   Get a more consistant mining time (currently using a basic difficulty setting and refresh)
+-   Global economics:
+    -   Draft a rational behind initial coin quantity then growth (minting and burning)
+-   Improve the transaction engraving:
+    -   Set a minimum gas allowed per transaction
+    -   And/or a set time before transaction failed
+    -   If too many transactions, let the miner pick and choose transactions, for instance based on gas
+-   Performance
+    -   Create reliable intermediary images of the ledger, instead of recalculating balances through the entire history
+-   Blockchain value
     -   Explore contract execution like Ethereum
+-   Code robustness
+    -   Add tests, unit to end-to-end
 
 ## Sources
 

@@ -14,13 +14,13 @@ export class Blockchain {
         const initialCoinReleaseTransaction = firstTransaction
         const firstBlock = new Block({
             timestamp: Date.now().toString(),
-            previousHash: '', // --- Explanation ---> First block doesn't have an elder
+            previousHash: '', // --- Explanation ---> First block doesn't have an ancestor
             transactionList: [initialCoinReleaseTransaction],
         })
         this.chain = [firstBlock]
         this.transactionsPool = []
         this.miningDifficulty = 1
-        this.targetBlockCreationTime = 1 * 60 * 1000
+        this.targetBlockCreationTime = 1 * 60 * 1000 // --- Explanation ---> 1min in milliseconds
         this.miningReward = 100
     }
 
@@ -54,13 +54,6 @@ export class Blockchain {
     }
 
     public mineBlock({ rewardAddress }: { rewardAddress: string }): void {
-        // --- Limit ---
-        // Giving a fixed amount of coins even if the miner only adds 1 transaction
-        // is not economical, either the amount of minting should depend on the
-        // - mining time: because it corresponds to the energy and time spent by the miner
-        // or
-        // - transactions number, value or gas: because it corresponds to the value provided to users
-
         // --- Explanation ---
         // Ensuring that at least one legit transaction has been processed by the miner
         if (this.transactionsPool.length !== 0) {
@@ -79,7 +72,7 @@ export class Blockchain {
 
             // --- Limit ---
             // The miner is both mining, adding to the chain and resetting the transaction pool
-            // thus no on ensures that the work is legit
+            // thus no one else ensures that the work is legit
             this.chain.push(Object.freeze(newBlock))
             this.transactionsPool = []
 

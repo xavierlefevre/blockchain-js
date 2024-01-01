@@ -57,6 +57,10 @@ export class Transaction {
             transaction.from &&
             transaction.to &&
             transaction.amount &&
+            // --- Limit ---
+            // The below checks if the sender has enough money in the chain
+            // however if several transactions are sent to the pool, the total "pending" amount
+            // is not checked
             (chain.getBalance(transaction.from) >=
                 transaction.amount + transaction.gas ||
                 transaction.from === MINT_PUBLIC_ADDRESS) &&

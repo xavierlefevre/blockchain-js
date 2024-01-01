@@ -37,6 +37,12 @@ export class Block {
         )
     }
 
+    // --- Explanation ---
+    // It takes a certain amount of time for miners to find a valid hash for the block.
+    // They need to compute enough hashed to find a fixed number of leading zeros.
+    // The diffulty is set and adjusted regularly to ensure a consistant time to mine.
+    // The purpose is to ensure that it is slower for a hacker to rebuild a fake chain chunk
+    // than for the rest of the network to continue to grow the valid chain
     public mine(difficulty: number): void {
         while (
             !this.hash.startsWith(
@@ -49,7 +55,7 @@ export class Block {
     }
 
     // --- Explanation ---
-    // Not used at the moment, just called by the Blockchain validation function, not used
+    // Not used at the moment, as called by the not used Blockchain validation function
     public hasValidTransactions(chain: Blockchain): boolean {
         let gas = 0,
             reward = 0
