@@ -18,8 +18,10 @@ I leverage different online resources to progressively build-up a more complete 
     -   Let the miner re-arrange the list of transactions based on gas
     -   Minimum gas allowed and/or deadline before transaction failed
     -   Create a chain validator persona
+    -   Build a proper secure API: what can be called by who
     -   Handle concurrency at each step
--   Setup a Peer-to-peer process
+    -   Setup a Peer-to-peer process
+    -   Explore contract execution like Ethereum
 
 ## Sources
 

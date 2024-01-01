@@ -1,4 +1,4 @@
-import { xavierWallet, lumaWallet, minerWallet } from './project/constants'
+import { xavierWallet, lumaWallet, minerWallet } from './project/wallets'
 import { Transaction } from './project/transaction'
 import { Blockchain } from './project/blockchain'
 import type { Block } from './project/block'
@@ -63,11 +63,11 @@ setTimeout(() => {
 
 // ------ Miner ------
 // DAY 1.2 -> Mining of the transactions in the pool
-Mugen.mineTransactions({ rewardAddress: minerPublic })
+Mugen.mineBlock({ rewardAddress: minerPublic })
 
 // DAY 2.2 -> Mining of the transactions in the pool
 setTimeout(() => {
-    Mugen.mineTransactions({ rewardAddress: minerPublic })
+    Mugen.mineBlock({ rewardAddress: minerPublic })
 }, 3)
 
 // xxxxxxxx Result xxxxxxxx
@@ -78,7 +78,10 @@ setTimeout(() => {
     console.log(' ')
     console.log('-----')
     Mugen.chain.map((block: Block) => {
-        console.log(`Transactions in block ${block.hash}`, block.data)
+        console.log(
+            `Transactions in block ${block.hash}`,
+            block.transactionList
+        )
     })
     console.log('-----')
     console.log(' ')
