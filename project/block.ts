@@ -1,6 +1,6 @@
 import { MINT_PUBLIC_ADDRESS } from './wallets'
 import { SHA256 } from './cryptography'
-import type { Transaction } from './transaction'
+import { Transaction } from './transaction'
 import type { Blockchain } from './blockchain'
 
 const log16 = (n: number): number => Math.log(n) / Math.log(16)
@@ -24,16 +24,16 @@ export class Block {
         this.timestamp = timestamp
         this.transactionList = transactionList
         this.previousHash = previousHash
-        this.hash = this.computeHash()
+        this.hash = Block.computeHash(this)
         this.nonce = 0
     }
 
-    public computeHash(): string {
+    static computeHash(block: Block): string {
         return SHA256(
-            this.previousHash +
-                this.timestamp +
-                JSON.stringify(this.transactionList) +
-                this.nonce
+            block.previousHash +
+                block.timestamp +
+                JSON.stringify(block.transactionList) +
+                block.nonce
         )
     }
 
@@ -50,17 +50,17 @@ export class Block {
             )
         ) {
             this.nonce++
-            this.hash = this.computeHash()
+            this.hash = Block.computeHash(this)
         }
     }
 
     // --- Explanation ---
     // Not used at the moment, as called by the not used Blockchain validation function
-    public hasValidTransactions(chain: Blockchain): boolean {
+    static hasValidTransactions(block: Block, chain: Blockchain): boolean {
         let gas = 0,
             reward = 0
 
-        this.transactionList.forEach((transaction) => {
+        block.transactionList.forEach((transaction) => {
             if (transaction.from !== MINT_PUBLIC_ADDRESS) {
                 gas += transaction.gas
             } else {
@@ -70,10 +70,10 @@ export class Block {
 
         return (
             reward - gas === chain.miningReward &&
-            this.transactionList.every((transaction) =>
-                transaction.isValid({ transaction, chain })
+            block.transactionList.every((transaction) =>
+                Transaction.isValid({ transaction, chain })
             ) &&
-            this.transactionList.filter(
+            block.transactionList.filter(
                 (transaction) => transaction.from === MINT_PUBLIC_ADDRESS
             ).length === 1
         )

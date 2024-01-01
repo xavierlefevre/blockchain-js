@@ -46,7 +46,7 @@ export class Transaction {
         // however the gas will still be paid by the sender
     }
 
-    public isValid({
+    static isValid({
         transaction,
         chain,
     }: {

@@ -29,7 +29,7 @@ export class Blockchain {
     }
 
     public addTransaction({ transaction }: { transaction: Transaction }): void {
-        if (transaction.isValid({ transaction, chain: this })) {
+        if (Transaction.isValid({ transaction, chain: this })) {
             this.transactionsPool.push(transaction)
         }
     }
@@ -88,15 +88,15 @@ export class Blockchain {
 
     // --- Explanation ---
     // Not used at the moment
-    public isValid(blockchain: Blockchain = this): boolean {
+    static isValid(blockchain: Blockchain): boolean {
         for (let i = 1; i < blockchain.chain.length; i++) {
             const currentBlock = blockchain.chain[i]
             const prevBlock = blockchain.chain[i - 1]
 
             if (
-                currentBlock.hash !== currentBlock.computeHash() ||
+                currentBlock.hash !== Block.computeHash(currentBlock) ||
                 prevBlock.hash !== currentBlock.previousHash ||
-                !currentBlock.hasValidTransactions(blockchain)
+                !Block.hasValidTransactions(currentBlock, blockchain)
             ) {
                 return false
             }
