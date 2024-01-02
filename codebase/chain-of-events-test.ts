@@ -1,7 +1,16 @@
-import { xavierWallet, lumaWallet, minerWallet } from './project/wallets'
-import { Transaction } from './project/transaction'
-import { Blockchain } from './project/blockchain'
-import type { Block } from './project/block'
+import { ec } from './core/cryptography'
+
+// For the initial event example in index.ts
+const xavierWallet = ec.genKeyPair()
+const lumaWallet = ec.genKeyPair()
+
+const minerPrivateKey =
+    '39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7'
+const minerWallet = ec.keyFromPrivate(minerPrivateKey, 'hex')
+
+import { Transaction } from './core/transaction'
+import { Blockchain } from './core/blockchain'
+import type { Block } from './core/block'
 
 const xavierPublic = xavierWallet.getPublic('hex')
 const lumaPublic = lumaWallet.getPublic('hex')

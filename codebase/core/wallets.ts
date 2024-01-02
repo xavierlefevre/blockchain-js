@@ -11,10 +11,6 @@ const privateKey =
 const keyPair = ec.keyFromPrivate(privateKey, 'hex')
 export const publicKey = keyPair.getPublic('hex')
 
-// For the initial event example in index.ts
-export const xavierWallet = ec.genKeyPair()
-export const lumaWallet = ec.genKeyPair()
-
 const minerPrivateKey =
     '39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7'
 export const minerWallet = ec.keyFromPrivate(minerPrivateKey, 'hex')

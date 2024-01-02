@@ -8,7 +8,7 @@ I leverage different online resources to progressively build-up a more complete 
 ## Start
 
 -   Install dependencies: `yarn`
--   Launch the transactions simulation: `npx ts-node index.ts`
+-   Launch the transactions simulation: `npx ts-node codebase/chain-of-events-test.ts`
 
 ## Design
 
