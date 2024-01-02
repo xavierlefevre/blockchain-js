@@ -1,29 +1,30 @@
 import { Blockchain } from './blockchain'
 import { Block } from './block'
 import { Transaction } from './transaction'
-import { SHA256 } from './cryptography'
-import { MINT_PUBLIC_ADDRESS, minerPublicKey } from './wallets'
+import { MINT_PUBLIC_ADDRESS } from './wallets'
 
 import WS from 'ws'
 
 const Mugen = new Blockchain()
 
+// In the original repository, there are 2 files, for each node, to run in each of their separate windows!
+// TO DO!!
 const PORT = 3001
 const PEERS: string[] = ['ws://localhost:3000']
-const MY_ADDRESS = 'ws://localhost:3001'
-const server = new WS.Server({ port: PORT })
+const MY_NODE_ADDRESS = `ws://localhost:${PORT}`
+const server = new WS.Server({ port: PORT }) // Creating 1 local websocket server
 
 type OpenNode = {
     socket: WS
     address: string
 }
 
-const opened: OpenNode[] = []
-const connected: string[] = []
-const check: string[] = []
+const openedConnectionsNodes: OpenNode[] = [] // Redundancy between those two tables, we could simplify
+const connectedNodes: string[] = []
+let check: string[] = []
 const checked: string[] = []
 let checking: boolean = false
-let tempChain = new Blockchain()
+let temporaryChainInRetrieval = new Blockchain()
 
 console.log('Listening on PORT', PORT)
 
@@ -34,126 +35,24 @@ server.on('connection', async (socket: WS) => {
         console.log(_message)
 
         switch (_message.type) {
-            case 'TYPE_REPLACE_CHAIN': {
-                const [newBlock, newDiff]: [Block, number] = _message.data
-
-                const ourTx = [
-                    ...Mugen.transactionsPool.map((tx) => JSON.stringify(tx)),
-                ]
-                const theirTx = [
-                    ...newBlock.transactionList
-                        .filter(
-                            (tx: Transaction) => tx.from !== MINT_PUBLIC_ADDRESS
-                        )
-                        .map((tx: Transaction) => JSON.stringify(tx)),
-                ]
-                const n = theirTx.length
-
-                if (
-                    newBlock.previousHash !== Mugen.getLastBlock().previousHash
-                ) {
-                    for (let i = 0; i < n; i++) {
-                        const index = ourTx.indexOf(theirTx[0])
-
-                        if (index === -1) break
-
-                        ourTx.splice(index, 1)
-                        theirTx.splice(0, 1)
-                    }
-
-                    if (
-                        theirTx.length === 0 &&
-                        SHA256(
-                            Mugen.getLastBlock().hash +
-                                newBlock.timestamp +
-                                JSON.stringify(newBlock.transactionList) +
-                                newBlock.nonce
-                        ) === newBlock.hash &&
-                        newBlock.hash.startsWith(
-                            '000' +
-                                Array(
-                                    Math.round(
-                                        Math.log(Mugen.miningDifficulty) /
-                                            Math.log(16) +
-                                            1
-                                    )
-                                ).join('0')
-                        ) &&
-                        Block.hasValidTransactions(newBlock, Mugen) &&
-                        (parseInt(newBlock.timestamp) >
-                            parseInt(Mugen.getLastBlock().timestamp) ||
-                            Mugen.getLastBlock().timestamp === '') &&
-                        parseInt(newBlock.timestamp) < Date.now() &&
-                        Mugen.getLastBlock().hash === newBlock.previousHash &&
-                        (newDiff + 1 === Mugen.miningDifficulty ||
-                            newDiff - 1 === Mugen.miningDifficulty)
-                    ) {
-                        Mugen.chain.push(newBlock)
-                        Mugen.miningDifficulty = newDiff
-                        Mugen.transactionsPool = [
-                            ...ourTx.map((tx) => JSON.parse(tx)),
-                        ]
-                    }
-                } else if (
-                    !checked.includes(
-                        JSON.stringify([
-                            newBlock.previousHash,
-                            Mugen.chain[Mugen.chain.length - 2].timestamp || '',
-                        ])
-                    )
-                ) {
-                    checked.push(
-                        JSON.stringify([
-                            Mugen.getLastBlock().previousHash,
-                            Mugen.chain[Mugen.chain.length - 2].timestamp || '',
-                        ])
-                    )
-
-                    const position = Mugen.chain.length - 1
-
-                    checking = true
-
-                    sendMessage(
-                        produceMessage('TYPE_REQUEST_CHECK', MY_ADDRESS)
-                    )
-
-                    setTimeout(() => {
-                        checking = false
-
-                        let mostAppeared = check[0]
-
-                        check.forEach((group) => {
-                            if (
-                                check.filter((_group) => _group === group)
-                                    .length >
-                                check.filter(
-                                    (_group) => _group === mostAppeared
-                                ).length
-                            ) {
-                                mostAppeared = group
-                            }
-                        })
-
-                        const group = JSON.parse(mostAppeared)
-
-                        Mugen.chain[position] = group[0]
-                        Mugen.transactionsPool = [...group[1]]
-                        Mugen.miningDifficulty = group[2]
-
-                        check.splice(0, check.length)
-                    }, 5000)
-                }
-
+            case 'HANDSHAKE': {
+                const nodes: string[] = _message.data
+                nodes.forEach((node) => connect(node))
                 break
             }
 
-            case 'TYPE_REQUEST_CHECK':
-                opened
-                    .filter((node) => node.address === _message.data)[0]
+            case 'UPDATE_CHAIN_ON_SUCCESSFUL_MINING': {
+                updateChainOnSuccessfulMining(_message)
+                break
+            }
+
+            case 'REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT': // Send my latest chain info to the node requesting it
+                openedConnectionsNodes
+                    .filter((node) => node.address === _message.data)[0] // Just sending to the requester
                     .socket.send(
                         JSON.stringify(
-                            produceMessage(
-                                'TYPE_SEND_CHECK',
+                            buildMessage(
+                                'SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT',
                                 JSON.stringify([
                                     Mugen.getLastBlock(),
                                     Mugen.transactionsPool,
@@ -165,43 +64,30 @@ server.on('connection', async (socket: WS) => {
 
                 break
 
-            case 'TYPE_SEND_CHECK':
+            case 'SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT':
                 if (checking) check.push(_message.data)
                 break
 
-            case 'TYPE_CREATE_TRANSACTION': {
+            case 'CREATE_TRANSACTION': {
+                // One node sends a new transaction to add to all nodes pools
                 const transaction: Transaction = _message.data
                 Mugen.addTransaction({ transaction })
                 break
             }
 
-            case 'TYPE_SEND_CHAIN': {
-                const { block, finished } = _message.data
-
-                if (!finished) {
-                    tempChain.chain.push(block)
-                } else {
-                    tempChain.chain.push(block)
-                    if (Blockchain.isValid(tempChain)) {
-                        Mugen.chain = tempChain.chain
-                    }
-                    tempChain = new Blockchain()
-                }
-
-                break
-            }
-
-            case 'TYPE_REQUEST_CHAIN': {
-                const socket = opened.filter(
+            case 'REQUEST_ENTIRE_CHAIN': {
+                // Useful for all new nodes, to catch-up the whole chain
+                const socket = openedConnectionsNodes.filter(
                     (node) => node.address === _message.data
-                )[0].socket
+                )[0].socket // Retrieves only the socket info of the requester
 
                 for (let i = 1; i < Mugen.chain.length; i++) {
                     socket.send(
                         JSON.stringify(
-                            produceMessage('TYPE_SEND_CHAIN', {
+                            buildMessage('SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK', {
                                 block: Mugen.chain[i],
-                                finished: i === Mugen.chain.length - 1,
+                                isLastBlockOfTheChain:
+                                    i === Mugen.chain.length - 1,
                             })
                         )
                     )
@@ -210,121 +96,263 @@ server.on('connection', async (socket: WS) => {
                 break
             }
 
-            case 'TYPE_REQUEST_INFO':
-                opened
-                    .filter((node) => node.address === _message.data)[0]
-                    .socket.send(
-                        JSON.stringify(
-                            produceMessage('TYPE_SEND_INFO', [
-                                Mugen.miningDifficulty,
-                                Mugen.transactionsPool,
-                            ])
-                        )
-                    )
+            case 'SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK': {
+                const { block, isLastBlockOfTheChain } = _message.data
 
-                break
+                temporaryChainInRetrieval.chain.push(block)
+                if (isLastBlockOfTheChain) {
+                    if (Blockchain.isValid(temporaryChainInRetrieval)) {
+                        Mugen.chain = temporaryChainInRetrieval.chain
+                    }
+                    temporaryChainInRetrieval = new Blockchain()
+                }
 
-            case 'TYPE_SEND_INFO':
-                ;[Mugen.miningDifficulty, Mugen.transactionsPool] =
-                    _message.data
-
-                break
-
-            case 'TYPE_HANDSHAKE': {
-                const nodes: string[] = _message.data
-                nodes.forEach((node) => connect(node))
                 break
             }
         }
     })
 })
 
-async function connect(address: string): Promise<void> {
+async function connect(address: string) {
     if (
-        !connected.find((peerAddress) => peerAddress === address) &&
-        address !== MY_ADDRESS
+        !connectedNodes.find((peerAddress) => peerAddress === address) &&
+        address !== MY_NODE_ADDRESS
     ) {
         const socket = new WS(address)
 
         socket.on('open', () => {
             socket.send(
                 JSON.stringify(
-                    produceMessage('TYPE_HANDSHAKE', [MY_ADDRESS, ...connected])
+                    buildMessage('HANDSHAKE', [
+                        MY_NODE_ADDRESS,
+                        ...connectedNodes,
+                    ])
                 )
             )
 
-            opened.forEach((node) =>
+            openedConnectionsNodes.forEach((node) =>
                 node.socket.send(
-                    JSON.stringify(produceMessage('TYPE_HANDSHAKE', [address]))
+                    JSON.stringify(buildMessage('HANDSHAKE', [address]))
                 )
             )
 
             if (
-                !opened.find((peer) => peer.address === address) &&
-                address !== MY_ADDRESS
+                !openedConnectionsNodes.find(
+                    (peer) => peer.address === address
+                ) &&
+                address !== MY_NODE_ADDRESS
             ) {
-                opened.push({ socket, address })
+                openedConnectionsNodes.push({ socket, address })
             }
 
             if (
-                !connected.find((peerAddress) => peerAddress === address) &&
-                address !== MY_ADDRESS
+                !connectedNodes.find(
+                    (peerAddress) => peerAddress === address
+                ) &&
+                address !== MY_NODE_ADDRESS
             ) {
-                connected.push(address)
+                connectedNodes.push(address)
             }
         })
 
         socket.on('close', () => {
-            opened.splice(connected.indexOf(address), 1)
-            connected.splice(connected.indexOf(address), 1)
+            openedConnectionsNodes.splice(connectedNodes.indexOf(address), 1)
+            connectedNodes.splice(connectedNodes.indexOf(address), 1)
         })
     }
 }
 
-function produceMessage(
-    type: string,
-    data:
-        | string
-        | string[]
-        | (number | Block)[]
-        | (number | Transaction[])[]
-        | { block: Block; finished: boolean }
-) {
+type messageData =
+    | string
+    | string[]
+    | (number | Block)[]
+    | (number | Transaction[])[]
+    | { block: Block; isLastBlockOfTheChain: boolean }
+
+function buildMessage(type: string, data: messageData) {
     return { type, data }
 }
-
-function sendMessage(message: {
-    type: string
-    data:
-        | string
-        | string[]
-        | (number | Block)[]
-        | (number | Transaction[])[]
-        | { block: Block; finished: boolean }
-}): void {
-    opened.forEach((node) => {
+function sendMessage(message: { type: string; data: messageData }) {
+    openedConnectionsNodes.forEach((node) => {
         node.socket.send(JSON.stringify(message))
     })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function updateChainOnSuccessfulMining(message: any) {
+    const [newBlock, newDifficulty]: [Block, number] = message.data
+
+    // Turning all the transactions I have in my pool in a comparable string
+    const ourTransactions = [
+        ...Mugen.transactionsPool.map((transaction) =>
+            JSON.stringify(transaction)
+        ),
+    ]
+    // Then doing the same with the transactions engraved in this new block
+    // also removing the mining reward transactions because they never enter the pool
+    const theirTransactions = [
+        ...newBlock.transactionList
+            .filter(
+                (transaction: Transaction) =>
+                    transaction.from !== MINT_PUBLIC_ADDRESS
+            )
+            .map((transaction: Transaction) => JSON.stringify(transaction)),
+    ]
+
+    // Basic check to confirm that the new block received doesn't have the same parent
+    // as the latest block on my copy of the chain
+    // --- Warning/Question ---> There is a (slim) chance the chain successfuly
+    // added x blocks in the meantime, not just 1
+    if (newBlock.previousHash !== Mugen.getLastBlock().previousHash) {
+        synchronisePools(ourTransactions, theirTransactions)
+
+        if (
+            theirTransactions.length === 0 && // To ensure that their transactions were all in our pool initially
+            Block.computeHash({
+                previousHash: Mugen.getLastBlock().hash,
+                timestamp: newBlock.timestamp,
+                transactionList: newBlock.transactionList,
+                nonce: newBlock.nonce,
+            }) === newBlock.hash && // This check and the below are important, they check that the nonce indeed...
+            Block.hasExpectedLeadingZeros(
+                newBlock.hash,
+                Mugen.miningDifficulty
+            ) && // ...led to the proper leading zeros hash matching the difficulty
+            Block.hasValidTransactions(newBlock, Mugen) &&
+            Block.hasValidTimestamp(
+                newBlock.timestamp,
+                Mugen.getLastBlock().timestamp
+            ) &&
+            Mugen.getLastBlock().hash === newBlock.previousHash &&
+            Block.hasValidDifficulty(newDifficulty, Mugen.miningDifficulty) // --- Warning/Question ---> Again here, we assume no so many blocks were mined in-between
+        ) {
+            Mugen.chain.push(newBlock)
+            Mugen.miningDifficulty = newDifficulty
+            Mugen.transactionsPool = [
+                // --- Comment ---> With JavaScript running on only 1 thread, this seems safe, as new events like transaction requests are in the event loop
+                ...ourTransactions.map((transaction) =>
+                    JSON.parse(transaction)
+                ),
+            ]
+        }
+    } else if (
+        !checked.includes(
+            JSON.stringify([
+                newBlock.previousHash,
+                Mugen.chain[Mugen.chain.length - 2].timestamp || '',
+            ])
+        ) // Verifies that this check was not already done, or ongoing --- Note ---> Checked could be flushed after some time
+    ) {
+        checked.push(
+            JSON.stringify([
+                Mugen.getLastBlock().previousHash,
+                Mugen.chain[Mugen.chain.length - 2].timestamp || '',
+            ])
+        )
+
+        const position = Mugen.chain.length - 1
+
+        checking = true
+
+        sendMessage(
+            buildMessage(
+                'REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT',
+                MY_NODE_ADDRESS
+            )
+        ) // Asking for the other blocks to send their latest block
+
+        setTimeout(() => {
+            // We wait a few seconds to get all nodes to send their
+            checking = false
+
+            let mostAppeared = check[0] // This line and the below forEach find the block with the most occurences across all answering nodes
+            check.forEach((group) => {
+                if (
+                    check.filter((_group) => _group === group).length >
+                    check.filter((_group) => _group === mostAppeared).length
+                ) {
+                    mostAppeared = group
+                }
+            })
+
+            const [
+                majorityLatestBlock,
+                majorityTransactionsPool,
+                majorityMiningDifficulty,
+            ] = JSON.parse(mostAppeared)
+
+            Mugen.chain[position] = majorityLatestBlock
+            Mugen.transactionsPool = [...majorityTransactionsPool]
+            Mugen.miningDifficulty = majorityMiningDifficulty
+
+            check = []
+        }, 5000) // --- Warning ---> 5 seconds is arbitrary, we don't really ensure that the majority from the replies is representative
+    }
+}
+
+function synchronisePools(
+    ourTransactions: string[],
+    theirTransactions: string[]
+) {
+    for (let i = 0; i < theirTransactions.length; i++) {
+        // Checking one by one each of their transactions, so that we
+        // can remove them from our transaction pool
+        // Is it assumed here that all nodes have the same image of the transaction pool
+        // --- Warning/Question ---> Because of communication/propagation delay, there is a possibility
+        // the pools were not in complete syncronisation, which would break out from this loop, stop the pool
+        // synchronisation, instead of adding the missing transaction to our pool, and continuing
+        const index = ourTransactions.indexOf(theirTransactions[0])
+
+        if (index === -1) break
+
+        ourTransactions.splice(index, 1) // Remove 1 element of the array at the position equal to the index
+        theirTransactions.splice(0, 1) // Remove first element of the array
+    }
+}
+
+// --- TEST ---
+
+// Connexion
 process.on('uncaughtException', (err: Error) => console.log(err))
 
 PEERS.forEach((peer) => connect(peer))
 
-setTimeout(() => {
-    if (Mugen.transactionsPool.length !== 0) {
-        Mugen.mineBlock({ rewardAddress: minerPublicKey })
+// // First node "operations"
+// setTimeout(() => {
+//     const transaction = new Transaction(
+//         publicKey,
+//         '046856ec283a5ecbd040cd71383a5e6f6ed90ed2d7e8e599dbb5891c13dff26f2941229d9b7301edf19c5aec052177fac4231bb2515cb59b1b34aea5c06acdef43',
+//         200,
+//         10
+//     )
 
-        sendMessage(
-            produceMessage('TYPE_REPLACE_CHAIN', [
-                Mugen.getLastBlock(),
-                Mugen.miningDifficulty,
-            ])
-        )
-    }
-}, 6500)
+//     transaction.sign(keyPair)
 
-setTimeout(() => {
-    console.log(opened)
-    console.log(Mugen)
-}, 10000)
+//     sendMessage(buildMessage('CREATE_TRANSACTION', transaction))
+
+//     Mugen.addTransaction(transaction)
+// }, 5000)
+
+// setTimeout(() => {
+//     console.log(openedConnectionsNodes)
+//     console.log(Mugen)
+// }, 10000)
+
+// // Second node "operations"
+// setTimeout(() => {
+//     if (Mugen.transactionsPool.length !== 0) {
+//         Mugen.mineBlock({ rewardAddress: minerPublicKey })
+
+//         sendMessage(
+//             buildMessage('UPDATE_CHAIN_ON_SUCCESSFUL_MINING', [
+//                 Mugen.getLastBlock(),
+//                 Mugen.miningDifficulty,
+//             ])
+//         )
+//     }
+// }, 6500)
+
+// setTimeout(() => {
+//     console.log(openedConnectionsNodes)
+//     console.log(Mugen)
+// }, 10000)

@@ -28,12 +28,21 @@ export class Block {
         this.nonce = 0
     }
 
-    static computeHash(block: Block): string {
+    static computeHash({
+        previousHash,
+        timestamp,
+        transactionList,
+        nonce,
+    }:
+        | {
+              previousHash: string
+              timestamp: string
+              transactionList: Transaction[]
+              nonce: number
+          }
+        | Block): string {
         return SHA256(
-            block.previousHash +
-                block.timestamp +
-                JSON.stringify(block.transactionList) +
-                block.nonce
+            previousHash + timestamp + JSON.stringify(transactionList) + nonce
         )
     }
 
@@ -44,14 +53,36 @@ export class Block {
     // The purpose is to ensure that it is slower for a hacker to rebuild a fake chain chunk
     // than for the rest of the network to continue to grow the valid chain
     public mine(difficulty: number): void {
-        while (
-            !this.hash.startsWith(
-                '000' + Array(Math.round(log16(difficulty)) + 1).join('0')
-            )
-        ) {
+        while (!Block.hasExpectedLeadingZeros(this.hash, difficulty)) {
             this.nonce++
             this.hash = Block.computeHash(this)
         }
+    }
+
+    static hasExpectedLeadingZeros(hash: string, miningDifficulty: number) {
+        return hash.startsWith(
+            '000' + Array(Math.round(log16(miningDifficulty)) + 1).join('0')
+        )
+    }
+
+    static hasValidTimestamp(
+        newBlockTimestamp: string,
+        lastBlockTimestamp: string
+    ) {
+        return (
+            parseInt(newBlockTimestamp) > parseInt(lastBlockTimestamp) &&
+            parseInt(newBlockTimestamp) < Date.now()
+        )
+    }
+
+    static hasValidDifficulty(
+        newDifficulty: number,
+        myInstanceDifficulty: number
+    ) {
+        return (
+            newDifficulty + 1 === myInstanceDifficulty ||
+            newDifficulty - 1 === myInstanceDifficulty
+        )
     }
 
     // --- Explanation ---

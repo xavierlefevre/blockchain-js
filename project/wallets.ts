@@ -5,6 +5,13 @@ const MINT_PRIVATE_ADDRESS =
 export const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, 'hex')
 export const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic('hex')
 
+const privateKey =
+    process.env.PRIVATE_KEY ||
+    '62d101759086c306848a0c1020922a78e8402e1330981afe9404d0ecc0a4be3d'
+const keyPair = ec.keyFromPrivate(privateKey, 'hex')
+export const publicKey = keyPair.getPublic('hex')
+
+// For the initial event example in index.ts
 export const xavierWallet = ec.genKeyPair()
 export const lumaWallet = ec.genKeyPair()
 
