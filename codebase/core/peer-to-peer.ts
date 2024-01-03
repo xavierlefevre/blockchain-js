@@ -18,6 +18,18 @@ type messageData =
     | Transaction
     | { block: Block; isLastBlockOfTheChain: boolean }
 
+export const COMMUNICATION_EVENTS = {
+    HANDSHAKE: 'HANDSHAKE',
+    UPDATE_CHAIN_ON_SUCCESSFUL_MINING: 'UPDATE_CHAIN_ON_SUCCESSFUL_MINING',
+    REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT:
+        'REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT',
+    SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT:
+        'SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT',
+    CREATE_TRANSACTION: 'CREATE_TRANSACTION',
+    REQUEST_ENTIRE_CHAIN: 'REQUEST_ENTIRE_CHAIN',
+    SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK: 'SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK',
+} as const
+
 export class Node {
     public port: number
     public peers: string[]
@@ -55,29 +67,33 @@ export class Node {
 
         server.on('connection', async (socket: WS) => {
             socket.on('message', (message: string) => {
-                const _message = JSON.parse(message)
+                const _message: {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    data: any
+                    type: keyof typeof COMMUNICATION_EVENTS
+                } = JSON.parse(message)
 
                 console.log(`LOG - Message Received: ${_message.type}`)
 
                 switch (_message.type) {
-                    case 'HANDSHAKE': {
+                    case COMMUNICATION_EVENTS.HANDSHAKE: {
                         const nodes: string[] = _message.data
                         nodes.forEach((node) => connect(this, node))
                         break
                     }
 
-                    case 'UPDATE_CHAIN_ON_SUCCESSFUL_MINING': {
+                    case COMMUNICATION_EVENTS.UPDATE_CHAIN_ON_SUCCESSFUL_MINING: {
                         updateChainOnSuccessfulMining(_message)
                         break
                     }
 
-                    case 'REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT': // Send my latest chain info to the node requesting it
+                    case COMMUNICATION_EVENTS.REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT: // Send my latest chain info to the node requesting it
                         this.openedConnectionsNodes
                             .filter((node) => node.address === _message.data)[0] // Just sending to the requester
                             .socket.send(
                                 JSON.stringify(
                                     this.buildMessage(
-                                        'SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT',
+                                        COMMUNICATION_EVENTS.SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT,
                                         JSON.stringify([
                                             this.myInstanceOfMugenChain.getLastBlock(),
                                             this.myInstanceOfMugenChain
@@ -91,11 +107,11 @@ export class Node {
 
                         break
 
-                    case 'SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT':
+                    case COMMUNICATION_EVENTS.SEND_AND_RECEIVE_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT:
                         if (this.checking) this.check.push(_message.data)
                         break
 
-                    case 'CREATE_TRANSACTION': {
+                    case COMMUNICATION_EVENTS.CREATE_TRANSACTION: {
                         // One node sends a new transaction to add to all nodes pools
                         const transaction: Transaction = _message.data
                         this.myInstanceOfMugenChain.addTransaction({
@@ -104,7 +120,7 @@ export class Node {
                         break
                     }
 
-                    case 'REQUEST_ENTIRE_CHAIN': {
+                    case COMMUNICATION_EVENTS.REQUEST_ENTIRE_CHAIN: {
                         // Useful for all new nodes, to catch-up the whole chain
                         const socket = this.openedConnectionsNodes.filter(
                             (node) => node.address === _message.data
@@ -118,7 +134,7 @@ export class Node {
                             socket.send(
                                 JSON.stringify(
                                     this.buildMessage(
-                                        'SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK',
+                                        COMMUNICATION_EVENTS.SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK,
                                         {
                                             block: this.myInstanceOfMugenChain
                                                 .chain[i],
@@ -136,7 +152,7 @@ export class Node {
                         break
                     }
 
-                    case 'SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK': {
+                    case COMMUNICATION_EVENTS.SEND_ENTIRE_CHAIN_BLOCK_BY_BLOCK: {
                         const { block, isLastBlockOfTheChain } = _message.data
 
                         this.temporaryChainInRetrieval.chain.push(block)
@@ -170,19 +186,23 @@ export class Node {
                 socket.on('open', () => {
                     socket.send(
                         JSON.stringify(
-                            nodeInstance.buildMessage('HANDSHAKE', [
-                                MY_NODE_ADDRESS,
-                                ...nodeInstance.connectedNodes,
-                            ])
+                            nodeInstance.buildMessage(
+                                COMMUNICATION_EVENTS.HANDSHAKE,
+                                [
+                                    MY_NODE_ADDRESS,
+                                    ...nodeInstance.connectedNodes,
+                                ]
+                            )
                         )
                     )
 
                     nodeInstance.openedConnectionsNodes.forEach((node) =>
                         node.socket.send(
                             JSON.stringify(
-                                nodeInstance.buildMessage('HANDSHAKE', [
-                                    address,
-                                ])
+                                nodeInstance.buildMessage(
+                                    COMMUNICATION_EVENTS.HANDSHAKE,
+                                    [address]
+                                )
                             )
                         )
                     )
@@ -280,7 +300,7 @@ export class Node {
                     Block.hasValidDifficulty(
                         newDifficulty,
                         this.myInstanceOfMugenChain.miningDifficulty
-                    ) // --- Warning/Question ---> Again here, we assume no so many blocks were mined in-between
+                    ) // --- Warning/Question ---> Again here, we assume not so many blocks were mined in-between
                 ) {
                     this.myInstanceOfMugenChain.chain.push(newBlock)
                     this.myInstanceOfMugenChain.miningDifficulty = newDifficulty
@@ -299,7 +319,8 @@ export class Node {
                             this.myInstanceOfMugenChain.chain.length - 2
                         ].timestamp || '',
                     ])
-                ) // Verifies that this check was not already done, or ongoing --- Note ---> Checked could be flushed after some time
+                ) // Verifies that this check was not already done, or ongoing
+                // --- Note ---> Checked could be flushed after some time
             ) {
                 this.checked.push(
                     JSON.stringify([
@@ -316,7 +337,7 @@ export class Node {
 
                 this.sendMessage(
                     this.buildMessage(
-                        'REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT',
+                        COMMUNICATION_EVENTS.REQUEST_LATEST_CHAIN_INFO_TO_HANDLE_CONFLICT,
                         MY_NODE_ADDRESS
                     )
                 ) // Asking for the other blocks to send their latest block
@@ -353,7 +374,8 @@ export class Node {
                         majorityMiningDifficulty
 
                     this.check = []
-                }, 5000) // --- Warning ---> 5 seconds is arbitrary, we don't really ensure that the majority from the replies is representative
+                }, 5000) // --- Warning ---> 5 seconds is arbitrary, we don't really ensure
+                // that the majority from the replies is representative
             }
         }
 

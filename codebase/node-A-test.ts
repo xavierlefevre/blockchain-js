@@ -1,7 +1,7 @@
 import { ec } from './core/cryptography'
 import { Transaction } from './core/transaction'
 import { Blockchain } from './core/blockchain'
-import { Node } from './core/peer-to-peer'
+import { Node, COMMUNICATION_EVENTS } from './core/peer-to-peer'
 
 const privateKey =
     '62d101759086c306848a0c1020922a78e8402e1330981afe9404d0ecc0a4be3d'
@@ -29,7 +29,10 @@ setTimeout(() => {
     transaction.sign({ keyPair })
 
     NodeInstance.sendMessage(
-        NodeInstance.buildMessage('CREATE_TRANSACTION', transaction)
+        NodeInstance.buildMessage(
+            COMMUNICATION_EVENTS.CREATE_TRANSACTION,
+            transaction
+        )
     )
 
     MugenInstance.addTransaction({ transaction })

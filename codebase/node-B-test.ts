@@ -1,6 +1,6 @@
 import { ec } from './core/cryptography'
 import { Blockchain } from './core/blockchain'
-import { Node } from './core/peer-to-peer'
+import { Node, COMMUNICATION_EVENTS } from './core/peer-to-peer'
 
 const privateKey =
     '39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7'
@@ -23,10 +23,10 @@ setTimeout(() => {
     if (MugenInstance.transactionsPool.length !== 0) {
         MugenInstance.mineBlock({ rewardAddress: publicKey })
         NodeInstance.sendMessage(
-            NodeInstance.buildMessage('UPDATE_CHAIN_ON_SUCCESSFUL_MINING', [
-                MugenInstance.getLastBlock(),
-                MugenInstance.miningDifficulty,
-            ])
+            NodeInstance.buildMessage(
+                COMMUNICATION_EVENTS.UPDATE_CHAIN_ON_SUCCESSFUL_MINING,
+                [MugenInstance.getLastBlock(), MugenInstance.miningDifficulty]
+            )
         )
     }
 }, 6500)
