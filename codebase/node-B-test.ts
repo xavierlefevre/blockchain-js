@@ -2,36 +2,39 @@ import { ec } from './core/cryptography'
 import { Blockchain } from './core/blockchain'
 import { Node, COMMUNICATION_EVENTS } from './core/peer-to-peer'
 
-const privateKey =
+// --- Warning ---> My private key should be hidden and protected
+const myPrivateKey =
     '39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7'
-const keyPair = ec.keyFromPrivate(privateKey, 'hex')
-const publicKey = keyPair.getPublic('hex')
+const myKeyPair = ec.keyFromPrivate(myPrivateKey, 'hex')
+const myPublicKey = myKeyPair.getPublic('hex')
 
+// --- Warning/Question ---> New peers should be discoverable
 const PEERS: string[] = ['ws://localhost:3000']
 
-const MugenInstance = new Blockchain()
-const NodeInstance = new Node({
-    blockchain: MugenInstance,
-    port: 3001,
+const MyLocalVersionOfMugen = new Blockchain()
+const MyLocalNode = new Node({
+    blockchain: MyLocalVersionOfMugen,
+    port: 3001, // --- Comment ---> We are faking nodes on local, but this should come from env variables
     peers: PEERS,
 })
-NodeInstance.wsConnection()
-
-process.on('uncaughtException', (err) => console.log(err))
+MyLocalNode.wsConnection()
 
 setTimeout(() => {
-    if (MugenInstance.transactionsPool.length !== 0) {
-        MugenInstance.mineBlock({ rewardAddress: publicKey })
-        NodeInstance.sendMessage(
-            NodeInstance.buildMessage(
+    if (MyLocalVersionOfMugen.transactionsPool.length !== 0) {
+        MyLocalVersionOfMugen.mineBlock({ rewardAddress: myPublicKey })
+        MyLocalNode.sendMessage(
+            MyLocalNode.buildMessage(
                 COMMUNICATION_EVENTS.UPDATE_CHAIN_ON_SUCCESSFUL_MINING,
-                [MugenInstance.getLastBlock(), MugenInstance.miningDifficulty]
+                [
+                    MyLocalVersionOfMugen.getLastBlock(),
+                    MyLocalVersionOfMugen.miningDifficulty,
+                ]
             )
         )
     }
 }, 6500)
 
 setTimeout(() => {
-    // console.log(NodeInstance.openedConnectionsNodes)
-    console.log(MugenInstance)
+    // console.log(MyLocalNode.openedConnectionsNodes)
+    console.log(MyLocalVersionOfMugen)
 }, 10000)
