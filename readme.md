@@ -2,13 +2,15 @@
 
 ## Introduction
 
-This project is for personal educational purposes. My objective is to build a mental mapping of a blockchain's design.
-I leverage different online resources to progressively build-up a more complete blockchain.
+This project is for personal educational purposes. It is full of limits and edge cases, but encompasses the core components of a blockchain. It's purpose is to help build a mental model of a blockchain's design. Different online resources were leveraged to build-up this project, sources at the bottom of the page.
 
 ## Start
 
 -   Install dependencies: `yarn`
--   Launch the transactions simulation: `npx ts-node codebase/chain-of-events-test.ts`
+-   **Option 1**: chain of events simulation on one machine: `yarn play-chain-of-events`
+-   **Options 2**: node to node communication script: quickly run 2 nodes in 2 terminals
+    -   Terminal 1: `yarn play-node-a`
+    -   Terminal 2: `yarn play-node-b`
 
 ## Design
 
@@ -36,7 +38,7 @@ Blocks are chained via their hashes. If a previous block hash is changed, it inv
 
 ## Todo
 
--   Basic chain operations -> Setup a peer-to-peer process:
+-   [WIP] Basic chain operations -> Setup a peer-to-peer process:
     -   Handle concurrency
     -   Build a proper secure API: what can be called by who
     -   Sync chain and transaction pools history across the network
@@ -59,10 +61,6 @@ Blocks are chained via their hashes. If a previous block hash is changed, it inv
 
 ## Sources
 
-[Creating a blockchain in 60 lines of Javascript - by FreakCdev](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
-
-### To explore
-
--   https://medium.com/coinmonks/building-a-blockchain-using-javascript-ac75d1b2af23
--   https://github.com/nambrot/blockchain-in-js
--   https://www.youtube.com/watch?v=zVqczFZr124&ab_channel=SimplyExplained
+-   [Creating a blockchain in 60 lines of Javascript - by FreakCdev](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
+-   [Build your own Blockchain in Javascript - by nambrot](https://github.com/nambrot/blockchain-in-js)
+-   [Create a blockchain javascript - by Simply Explained](https://www.youtube.com/watch?v=zVqczFZr124&list=PLggJAWhpyrRxKmetiP3RdTa7VAbGaXWub&ab_channel=SimplyExplained)

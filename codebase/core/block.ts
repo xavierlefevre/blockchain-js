@@ -53,16 +53,20 @@ export class Block {
     // The purpose is to ensure that it is slower for a hacker to rebuild a fake chain chunk
     // than for the rest of the network to continue to grow the valid chain
     public mine(difficulty: number): void {
-        while (!Block.hasExpectedLeadingZeros(this.hash, difficulty)) {
+        while (!Block.internalLeadingZerosCheck(this.hash, difficulty)) {
             this.nonce++
             this.hash = Block.computeHash(this)
         }
     }
 
-    static hasExpectedLeadingZeros(hash: string, miningDifficulty: number) {
-        const result = hash.startsWith(
+    static internalLeadingZerosCheck(hash: string, miningDifficulty: number) {
+        return hash.startsWith(
             '000' + Array(Math.round(log16(miningDifficulty)) + 1).join('0')
         )
+    }
+
+    static hasExpectedLeadingZeros(hash: string, miningDifficulty: number) {
+        const result = Block.internalLeadingZerosCheck(hash, miningDifficulty)
         if (!result) console.log('LOG - Failure because of Leading Zeros')
         return result
     }

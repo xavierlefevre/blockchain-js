@@ -3,6 +3,11 @@
     "version": "1.0.0",
     "main": "index.js",
     "license": "MIT",
+    "scripts": {
+        "play-chain-of-events": "PRIVATE_KEY=62d101759086c306848a0c1020922a78e8402e1330981afe9404d0ecc0a4be3d npx ts-node codebase/chain-of-events-test.ts",
+        "play-node-a": "PRIVATE_KEY=62d101759086c306848a0c1020922a78e8402e1330981afe9404d0ecc0a4be3d npx ts-node codebase/node-A-test.ts",
+        "play-node-b": "PRIVATE_KEY=39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7 npx ts-node codebase/node-B-test.ts"
+    },
     "dependencies": {
         "@types/elliptic": "^6.4.18",
         "@types/node": "^20.10.6",

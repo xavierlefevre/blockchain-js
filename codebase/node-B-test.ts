@@ -2,9 +2,7 @@ import { ec } from './core/cryptography'
 import { Blockchain } from './core/blockchain'
 import { Node, COMMUNICATION_EVENTS } from './core/peer-to-peer'
 
-// --- Warning ---> My private key should be hidden and protected
-const myPrivateKey =
-    '39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7'
+const myPrivateKey = process.env.PRIVATE_KEY || ''
 const myKeyPair = ec.keyFromPrivate(myPrivateKey, 'hex')
 const myPublicKey = myKeyPair.getPublic('hex')
 

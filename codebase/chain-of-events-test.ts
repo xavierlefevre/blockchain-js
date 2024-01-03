@@ -1,11 +1,9 @@
 import { ec } from './core/cryptography'
 
-// For the initial event example in index.ts
 const xavierWallet = ec.genKeyPair()
 const lumaWallet = ec.genKeyPair()
 
-const minerPrivateKey =
-    '39a4a81e8e631a0c51716134328ed944501589b447f1543d9279bacc7f3e3de7'
+const minerPrivateKey = process.env.PRIVATE_KEY || ''
 const minerWallet = ec.keyFromPrivate(minerPrivateKey, 'hex')
 
 import { Transaction } from './core/transaction'
@@ -16,70 +14,54 @@ const xavierPublic = xavierWallet.getPublic('hex')
 const lumaPublic = lumaWallet.getPublic('hex')
 const minerPublic = minerWallet.getPublic('hex')
 
-// ************************
-// Real-life scenario
-// ************************
-
-// ------ Creators ------
-// D-DAY -> Launch of the new blockchain and crypto Mugen!
 const Mugen = new Blockchain()
 
-// ------ User: Xavier ------
-// DAY 1.0 -> First transaction to Luma
-const transactionToLuma1 = new Transaction({
-    from: xavierPublic,
-    to: lumaPublic,
-    amount: 100,
+const transactionToXavier1 = new Transaction({
+    from: minerPublic,
+    to: xavierPublic,
+    amount: 5000,
     gas: 10,
 })
-transactionToLuma1.sign({ keyPair: xavierWallet })
-Mugen.addTransaction({ transaction: transactionToLuma1 })
+transactionToXavier1.sign({ keyPair: minerWallet })
+Mugen.addTransaction({ transaction: transactionToXavier1 })
 
-// DAY 1.1 -> Second transaction to Luma
-const transactionToLuma2 = new Transaction({
+const transactionToLuma1 = new Transaction({
     from: xavierPublic,
     to: lumaPublic,
     amount: 150,
     gas: 15,
 })
-transactionToLuma2.sign({ keyPair: xavierWallet })
-Mugen.addTransaction({ transaction: transactionToLuma2 })
+transactionToLuma1.sign({ keyPair: xavierWallet })
+Mugen.addTransaction({ transaction: transactionToLuma1 })
 
-// DAY 2.1 -> Third transaction to Luma
 setTimeout(() => {
-    const transactionToLuma3 = new Transaction({
+    const transactionToLuma2 = new Transaction({
         from: xavierPublic,
         to: lumaPublic,
         amount: 340,
         gas: 23,
     })
-    transactionToLuma3.sign({ keyPair: xavierWallet })
-    Mugen.addTransaction({ transaction: transactionToLuma3 })
+    transactionToLuma2.sign({ keyPair: xavierWallet })
+    Mugen.addTransaction({ transaction: transactionToLuma2 })
 }, 2)
 
-// ------ User: Luma ------
-// DAY 2.0 -> First transaction to Xavier
 setTimeout(() => {
-    const transactionToXavier1 = new Transaction({
+    const transactionToXavier2 = new Transaction({
         from: lumaPublic,
         to: xavierPublic,
         amount: 50,
         gas: 3,
     })
-    transactionToXavier1.sign({ keyPair: lumaWallet })
-    Mugen.addTransaction({ transaction: transactionToXavier1 })
+    transactionToXavier2.sign({ keyPair: lumaWallet })
+    Mugen.addTransaction({ transaction: transactionToXavier2 })
 }, 1)
 
-// ------ Miner ------
-// DAY 1.2 -> Mining of the transactions in the pool
 Mugen.mineBlock({ rewardAddress: minerPublic })
 
-// DAY 2.2 -> Mining of the transactions in the pool
 setTimeout(() => {
     Mugen.mineBlock({ rewardAddress: minerPublic })
 }, 3)
 
-// xxxxxxxx Result xxxxxxxx
 setTimeout(() => {
     console.log(' ')
     console.log('Chain', Mugen)
