@@ -55,6 +55,7 @@ Blocks are chained via their hashes. If a previous block hash is changed, it inv
     -   Explore contract execution like Ethereum
 -   Code robustness
     -   Add tests, unit to end-to-end
+    -   Switch to funcitonal programming (FP-TS), with a more Domain Driven Design structure
 
 ## Sources
 

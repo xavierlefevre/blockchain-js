@@ -60,29 +60,33 @@ export class Block {
     }
 
     static hasExpectedLeadingZeros(hash: string, miningDifficulty: number) {
-        return hash.startsWith(
+        const result = hash.startsWith(
             '000' + Array(Math.round(log16(miningDifficulty)) + 1).join('0')
         )
+        if (!result) console.log('LOG - Failure because of Leading Zeros')
+        return result
     }
 
     static hasValidTimestamp(
         newBlockTimestamp: string,
         lastBlockTimestamp: string
     ) {
-        return (
+        const result =
             parseInt(newBlockTimestamp) > parseInt(lastBlockTimestamp) &&
             parseInt(newBlockTimestamp) < Date.now()
-        )
+        if (!result) console.log('LOG - Failure because of Invalid Timestamp')
+        return result
     }
 
     static hasValidDifficulty(
         newDifficulty: number,
         myInstanceDifficulty: number
     ) {
-        return (
+        const result =
             newDifficulty + 1 === myInstanceDifficulty ||
             newDifficulty - 1 === myInstanceDifficulty
-        )
+        if (!result) console.log('LOG - Failure because of Invalid Difficulty')
+        return result
     }
 
     // --- Explanation ---

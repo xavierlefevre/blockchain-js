@@ -13,7 +13,7 @@ export class Blockchain {
     constructor() {
         const initialCoinReleaseTransaction = firstTransaction
         const firstBlock = new Block({
-            timestamp: Date.now().toString(),
+            timestamp: '1704276347504',
             previousHash: '', // --- Explanation ---> First block doesn't have an ancestor
             transactionList: [initialCoinReleaseTransaction],
         })
