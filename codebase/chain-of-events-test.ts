@@ -16,6 +16,8 @@ const minerPublic = minerWallet.getPublic('hex')
 
 const Mugen = new Blockchain()
 
+// Step 1
+
 const transactionToXavier1 = new Transaction({
     from: minerPublic,
     to: xavierPublic,
@@ -24,6 +26,10 @@ const transactionToXavier1 = new Transaction({
 })
 transactionToXavier1.sign({ keyPair: minerWallet })
 Mugen.addTransaction({ transaction: transactionToXavier1 })
+
+Mugen.mineBlock({ rewardAddress: minerPublic })
+
+// Step 2
 
 const transactionToLuma1 = new Transaction({
     from: xavierPublic,
@@ -34,6 +40,10 @@ const transactionToLuma1 = new Transaction({
 transactionToLuma1.sign({ keyPair: xavierWallet })
 Mugen.addTransaction({ transaction: transactionToLuma1 })
 
+Mugen.mineBlock({ rewardAddress: minerPublic })
+
+// Step 3
+
 setTimeout(() => {
     const transactionToLuma2 = new Transaction({
         from: xavierPublic,
@@ -43,7 +53,13 @@ setTimeout(() => {
     })
     transactionToLuma2.sign({ keyPair: xavierWallet })
     Mugen.addTransaction({ transaction: transactionToLuma2 })
-}, 2)
+}, 1)
+
+setTimeout(() => {
+    Mugen.mineBlock({ rewardAddress: minerPublic })
+}, 1)
+
+// Step 4
 
 setTimeout(() => {
     const transactionToXavier2 = new Transaction({
@@ -56,11 +72,9 @@ setTimeout(() => {
     Mugen.addTransaction({ transaction: transactionToXavier2 })
 }, 1)
 
-Mugen.mineBlock({ rewardAddress: minerPublic })
-
 setTimeout(() => {
     Mugen.mineBlock({ rewardAddress: minerPublic })
-}, 3)
+}, 1)
 
 setTimeout(() => {
     console.log(' ')
@@ -81,4 +95,4 @@ setTimeout(() => {
     console.log("Luma's balance:", Mugen.getBalance(lumaPublic))
     console.log("Miner's balance:", Mugen.getBalance(minerPublic))
     console.log(' ')
-}, 4)
+}, 10)

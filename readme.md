@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This project is for personal educational purposes. It is full of limits and edge cases, but encompasses the core components of a blockchain. It's purpose is to help build a mental model of a blockchain's design. Different online resources were leveraged to build-up this project, sources at the bottom of the page.
+This project is for personal educational purposes. It is full of limits and edge cases, but encompasses the core components of a blockchain. Its purpose is to help me build a mental model of a blockchain's design. Different online resources were leveraged to build-up this project, sources at the bottom of the page.
 
 ## Start
 
@@ -18,44 +18,33 @@ This project is for personal educational purposes. It is full of limits and edge
 
 ![](documentation/chain-representation.png)
 
-### Roles involved in the chain lifecycle
-
-![](documentation/roles.png)
-
-### A basic example of chain events
-
-![](documentation/examples-of-events.png)
-
 ### Security
 
 #### Transaction validity
 
-Each wallet owner owns a key pair as unique identifier, address, transaction signing tool. The public key is accessible to the network. The private remains secret to ensure the authenticity.
+Each wallet owner owns a key pair as unique identifier, address, transaction signing tool. The public key is accessible to the network. The private remains secret to its owner.
 
 #### Blockchain validity through Proof of work
 
 Blocks are chained via their hashes. If a previous block hash is changed, it invalidates all subsequent hashes. It will take more time for a solo hacker to re-mine each subsequent block hashes to build a fake chain, than the rest of the network to continue growing the valid chain.
 
-## Todo
+## Improvement Ideas
 
--   [WIP] Basic chain operations -> Setup a peer-to-peer process:
+-   Peer-to-peer:
     -   Handle concurrency
-    -   Build a proper secure API: what can be called by who
-    -   Sync chain and transaction pools history across the network
--   Security:
-    -   Ensure validity of chain, block and transactions
-    -   Get a more consistant mining time (currently using a basic difficulty setting and refresh)
+    -   Clarify the different jobs API: what can be called by who
 -   Global economics:
     -   Draft a rational behind initial coin quantity then growth (minting and burning)
--   Improve the transaction engraving:
+-   Improve the transaction & mining:
     -   Set a minimum gas allowed per transaction
     -   And/or a set time before transaction failed
     -   If too many transactions, let the miner pick and choose transactions, for instance based on gas
--   Performance
+    -   Get a more consistant mining time (currently using a basic difficulty setting and refresh)
+-   Performance:
     -   Create reliable intermediary images of the ledger, instead of recalculating balances through the entire history
--   Blockchain value
+-   Blockchain value:
     -   Explore contract execution like Ethereum
--   Code robustness
+-   Code robustness:
     -   Add tests, unit to end-to-end
     -   Switch to funcitonal programming (FP-TS), with a more Domain Driven Design structure
 

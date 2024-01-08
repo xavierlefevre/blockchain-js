@@ -93,8 +93,6 @@ export class Block {
         return result
     }
 
-    // --- Explanation ---
-    // Not used at the moment, as called by the not used Blockchain validation function
     static hasValidTransactions(block: Block, chain: Blockchain): boolean {
         let gas = 0,
             reward = 0

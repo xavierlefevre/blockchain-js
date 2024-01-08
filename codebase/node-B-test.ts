@@ -3,6 +3,7 @@ import { Blockchain } from './core/blockchain'
 import { Node, COMMUNICATION_EVENTS } from './core/peer-to-peer'
 
 const myPrivateKey = process.env.PRIVATE_KEY || ''
+const myPort = parseInt(process.env.PORT || '')
 const myKeyPair = ec.keyFromPrivate(myPrivateKey, 'hex')
 const myPublicKey = myKeyPair.getPublic('hex')
 
@@ -12,13 +13,17 @@ const PEERS: string[] = ['ws://localhost:3000']
 const MyLocalVersionOfMugen = new Blockchain()
 const MyLocalNode = new Node({
     blockchain: MyLocalVersionOfMugen,
-    port: 3001, // --- Comment ---> We are faking nodes on local, but this should come from env variables
+    port: myPort,
     peers: PEERS,
 })
 MyLocalNode.wsConnection()
 
-setTimeout(() => {
-    if (MyLocalVersionOfMugen.transactionsPool.length !== 0) {
+setInterval(() => {
+    // Have the node regularly check new transactions to mine
+    if (
+        MyLocalVersionOfMugen.transactionsPool.length !== 0 &&
+        !MyLocalVersionOfMugen.mining
+    ) {
         MyLocalVersionOfMugen.mineBlock({ rewardAddress: myPublicKey })
         MyLocalNode.sendMessage(
             MyLocalNode.buildMessage(
@@ -29,10 +34,10 @@ setTimeout(() => {
                 ]
             )
         )
-    }
-}, 6500)
 
-setTimeout(() => {
-    // console.log(MyLocalNode.openedConnectionsNodes)
-    console.log(MyLocalVersionOfMugen)
-}, 10000)
+        setTimeout(() => {
+            // console.log(MyLocalNode.openedConnectionsNodes)
+            console.log(MyLocalVersionOfMugen)
+        }, 1000)
+    }
+}, 5500)

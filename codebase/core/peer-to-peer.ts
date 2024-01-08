@@ -121,10 +121,10 @@ export class Node {
                     }
 
                     case COMMUNICATION_EVENTS.REQUEST_ENTIRE_CHAIN: {
-                        // Useful for all new nodes, to catch-up the whole chain
+                        // Useful for all new nodes catching-up the whole chain
                         const socket = this.openedConnectionsNodes.filter(
                             (node) => node.address === _message.data
-                        )[0].socket // Retrieves only the socket info of the requester
+                        )[0].socket // Retrieves the socket info of the requester only
 
                         for (
                             let i = 1;
@@ -246,7 +246,7 @@ export class Node {
         const updateChainOnSuccessfulMining = (message: any) => {
             const [newBlock, newDifficulty]: [Block, number] = message.data
 
-            // Turning all the transactions I have in my pool in a comparable string
+            // Turning all the transactions I have in my pool in comparable strings
             const ourTransactions = [
                 ...this.myInstanceOfMugenChain.transactionsPool.map(
                     (transaction) => JSON.stringify(transaction)
@@ -320,8 +320,9 @@ export class Node {
                         ].timestamp || '',
                     ])
                 ) // Verifies that this check was not already done, or ongoing
-                // --- Note ---> Checked could be flushed after some time
+                // --- Note ---> "checked" array could be flushed after some time
             ) {
+                // If indeed there is a conflict between my chain and the received block, I ask across the network to check
                 this.checked.push(
                     JSON.stringify([
                         this.myInstanceOfMugenChain.getLastBlock().previousHash,
@@ -375,7 +376,7 @@ export class Node {
 
                     this.check = []
                 }, 5000) // --- Warning ---> 5 seconds is arbitrary, we don't really ensure
-                // that the majority from the replies is representative
+                // that the replies are enough and representative of the network
             }
         }
 

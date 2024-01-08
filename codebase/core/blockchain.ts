@@ -9,6 +9,7 @@ export class Blockchain {
     public miningDifficulty: number
     public targetBlockCreationTime: number
     public miningReward: number
+    public mining: boolean
 
     constructor() {
         const initialCoinReleaseTransaction = firstTransaction
@@ -22,6 +23,7 @@ export class Blockchain {
         this.miningDifficulty = 1
         this.targetBlockCreationTime = 1 * 60 * 1000 // --- Explanation ---> 1min in milliseconds
         this.miningReward = 100
+        this.mining = false
     }
 
     public getLastBlock(): Block {
@@ -56,7 +58,13 @@ export class Blockchain {
     public mineBlock({ rewardAddress }: { rewardAddress: string }): void {
         // --- Explanation ---
         // Ensuring that at least one legit transaction has been processed by the miner
-        if (this.transactionsPool.length !== 0) {
+        if (this.transactionsPool.length !== 0 && !this.mining) {
+            this.mining = true // Prevent piling asynchronous mining calls if already ongoing
+            // --- Limit ---
+            // Due to the difficulty, mining is supposed to take a set average time
+            // During the process, at each loop trying to compute the right hash, the miner
+            // should be able to include more transactions
+
             const newBlock = new Block({
                 timestamp: Date.now().toString(),
                 previousHash: this.getLastBlock().hash,
@@ -64,15 +72,12 @@ export class Blockchain {
                     this.buildRewardTransaction({
                         rewardAddress,
                     }),
-                    ...this.transactionsPool,
+                    ...this.transactionsPool, // --- Note ---> Should be ok to calculate transaction reward, then spread the same object as JavaScript is mono-thread
                 ],
             })
 
             newBlock.mine(this.miningDifficulty)
 
-            // --- Limit ---
-            // The miner is both mining, adding to the chain and resetting the transaction pool
-            // thus no one else ensures that the work is legit
             this.chain.push(Object.freeze(newBlock))
             this.transactionsPool = []
 
@@ -83,11 +88,11 @@ export class Blockchain {
                 this.targetBlockCreationTime
                     ? 1
                     : -1
+
+            this.mining = false
         }
     }
 
-    // --- Explanation ---
-    // Not used at the moment
     static isValid(blockchain: Blockchain): boolean {
         for (let i = 1; i < blockchain.chain.length; i++) {
             const currentBlock = blockchain.chain[i]

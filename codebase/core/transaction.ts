@@ -29,9 +29,6 @@ export class Transaction {
     }
 
     public sign({ keyPair }: { keyPair: EC.KeyPair }): void {
-        // --- Question ---
-        // The public key of the "from wallet", anyone can have it
-        // so is it secure enough when signing and validating?
         if (keyPair.getPublic('hex') === this.from) {
             this.signature = keyPair
                 .sign(
@@ -59,8 +56,12 @@ export class Transaction {
             transaction.amount &&
             // --- Limit ---
             // The below checks if the sender has enough money in the chain
-            // however if several transactions are sent to the pool, the total "pending" amount
-            // is not checked
+            // however if several transactions were sent in a row, the total "pending" amount
+            // is not used for the check, which could make sense because the pool transactions were not validated
+            // but it means that those transactions would have to wait for the next mining
+            // We could consider getting the balance from the existing pool when adding a transaction to it
+            // then checking the included pool when mining and validating a block
+            // However if block can choose the transactions, they'd have to be careful of those "dependencies"
             (chain.getBalance(transaction.from) >=
                 transaction.amount + transaction.gas ||
                 transaction.from === MINT_PUBLIC_ADDRESS) &&
